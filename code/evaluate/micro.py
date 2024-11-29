@@ -55,100 +55,7 @@ def main(set, args):
     
     data_set = 1
     
-    if args.dataset == "CASME":
-        print("*********** CASME Dataset Fold  " + str(data_set) + " ***********")
-        log_txt_path = '/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/' + 'log.txt'
-        log_curve_path = '/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/' + 'log.png'
-        log_confusion_matrix_path = '/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/' + 'cn.png'
-        checkpoint_path = '/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/'+'checkpoint/'+'model.pth'
-        best_checkpoint_path = '/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/'+'checkpoint/'+'best_model.pth'
-        train_annotation_file_path = "/data3/wl/MMA-DFER-mainannotation/CASME_set_"+str(data_set)+"_train.txt"
-        test_annotation_file_path = "/data3/wl/MMA-DFER-mainannotation/CASME_set_"+str(data_set)+"_test.txt"
-        os.makedirs('/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/')
-        os.makedirs('/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/checkpoint/')
-        os.makedirs('/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/code/')
-        os.makedirs('/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/code/models')
-        os.makedirs('/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/code/AudioMAE')
-        os.makedirs('/data3/wl/MMA-DFER-mainlog/' + 'CASME-' + time_str + '-set' + str(data_set) + '-log/code/dataloader')
-        
-            # 创建目录结构
-        log_directory = '/data3/wl/MMA-DFER-mainlog/CASME-' + time_str + '-set' + str(data_set) + '-log/'
-        checkpoint_directory = os.path.join(log_directory, 'checkpoint')
-        code_directory = os.path.join(log_directory, 'code')
-        subdirectories = [log_directory, checkpoint_directory, code_directory]
-        for subdir in subdirectories:
-            os.makedirs(subdir, exist_ok=True)
-
-        for filename in ['main.py', 'train_DFEW.sh', 'train_MAFW.sh', 'models/Generate_Model.py', 'models/Temporal_Model.py', 'dataloader/video_dataloader.py', 'dataloader/video_transform.py', 'models/models_vit.py', 'AudioMAE/audio_models_vit.py']:
-            source_path = os.path.join('/data3/wl/MMA-DFER-main/', filename)  # 假设文件位于当前目录
-            print(source_path)
-            destination_path = os.path.join(subdirectories[2], filename)
-            print(destination_path)
-            shutil.copyfile(source_path, destination_path)
-
-    best_acc = 0
-    recorder = RecorderMeter(args.epochs)
-    print('The training name: ' + time_str)
-       
     model = GenerateModel(args=args)
-  
-    # only open learnable part
-    for name, param in model.named_parameters():
-        param.requires_grad = True #False
-
-    for name, param in model.named_parameters():
-        if "image_encoder" in name:
-            param.requires_grad = False 
-        if "audio_model" in name:
-            param.requires_grad = False
-        if "e_lstm" in name:
-            param.requires_grad = False
-        if "all_gate" in name:
-            param.requires_grad = True
-        if "our_classifier" in name:
-            param.requires_grad = True
-        if "positional_embedding" in name:
-            param.requires_grad = True
-        if "learnable_prompts" in name:
-            param.requires_grad = False
-        if "pos_embed" in name:
-            param.requires_grad = True
-        if "audio_proj" in name:
-            param.requires_grad = True
-        if "temporal" in name:
-            param.requires_grad = True
-        if "gate" in name:
-            param.requires_grad = True
-        if "context_att" in name:
-            param.requires_grad = True
-        if "learnable_q" in name:
-            param.requires_grad = True
-        if "audio_att" in name:
-            param.requires_grad = True
-        if "norm_xt" in name:
-            param.requires_grad = True
-        if "norm_xt_2" in name:
-            param.requires_grad = True
-        if "norm_qs" in name:
-            param.requires_grad = True
-    
-    path = '/data3/wl/MMA-DFER-mainlog/CASME-2410141437CASME_FACE-set1-log/checkpoint/model.pth'
-    
-    pre_trained_dict = torch.load(path)['state_dict']
-    model.load_state_dict(pre_trained_dict, strict=False)   
-    
-    model = model.cuda()
-    
-    with open(log_txt_path, 'a') as f:
-        for k, v in vars(args).items():
-            f.write(str(k) + '=' + str(v) + '\n')
-    
-    criterion = nn.CrossEntropyLoss().cuda()
-    
-    # define optimizer
-    optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs) 
-    cudnn.benchmark = True
     
     train_loader, val_loader = Load_FEV_Dataset(v_train_path=r"/data2/wl/Part_A_ME_clip/frame",
                                                v_test_path=r"/data2/wl/Part_A_ME_clip/frame",
@@ -159,46 +66,12 @@ def main(set, args):
                                                batch_size=args.batch_size)
    
 
-    for epoch in range(0, args.epochs):
-
-        inf = '********************' + str(epoch) + '********************'
-        start_time = time.time()
-        current_learning_rate_0 = optimizer.state_dict()['param_groups'][0]['lr']
-
-        with open(log_txt_path, 'a') as f:
-            f.write(inf + '\n')
-            print(inf)
-            f.write('Current learning rate: ' + str(current_learning_rate_0) + '\n')
-            print('Current learning rate: ', current_learning_rate_0)        
-            
-        val_acc, val_los,war,uar = validate(val_loader, model, criterion, args, log_txt_path)
-        print(val_acc, val_los,war,uar)
+    val_acc, val_los,war,uar,uF1 = validate(val_loader, model, criterion, args, log_txt_path)
         
-        scheduler.step()
-
-        is_best = val_acc > best_acc
-        best_acc = max(val_acc, best_acc)
-        save_checkpoint({'epoch': epoch + 1,
-                         'state_dict': model.state_dict(),
-                         'best_acc': best_acc,
-                         'optimizer': optimizer.state_dict(),
-                         'recorder': recorder}, is_best,
-                        checkpoint_path,best_checkpoint_path)
-
-        epoch_time = time.time() - start_time
-        # recorder.update(epoch, train_los, train_acc, val_los, val_acc)
-        recorder.plot_curve(log_curve_path)
-
-        print('The best accuracy: {:.3f}'.format(best_acc.item()))
-        print('An epoch time: {:.2f}s'.format(epoch_time))
-        with open(log_txt_path, 'a') as f:
-            f.write('The best accuracy: ' + str(best_acc.item()) + '\n')
-            f.write('An epoch time: ' + str(epoch_time) + 's' + '\n')
-
-    last_uar, last_war = computer_uar_war(val_loader, model, checkpoint_path, log_confusion_matrix_path, log_txt_path, data_set, args.class_names)
-    best_uar, best_war = computer_uar_war(val_loader, model, best_checkpoint_path, log_confusion_matrix_path, log_txt_path, data_set, args.class_names)
-    print(best_uar, best_war)
-    return last_uar, last_war
+    # last_uar, last_war = computer_uar_war(val_loader, model, checkpoint_path, log_confusion_matrix_path, log_txt_path, data_set, args.class_names)
+    # best_uar, best_war = computer_uar_war(val_loader, model, best_checkpoint_path, log_confusion_matrix_path, log_txt_path, data_set, args.class_names)
+    # print(best_uar, best_war)
+    return war,uar,uF1
 
 
 from sklearn.metrics import recall_score
@@ -480,8 +353,6 @@ def computer_uar_war(val_loader, model, checkpoint_path, log_confusion_matrix_pa
 
 if __name__ == '__main__':
     args = parse_args() 
-    UAR = 0.0
-    WAR = 0.0
     now = datetime.datetime.now()
     time_str = now.strftime("%y%m%d%H%M")
     time_str = time_str + args.exper_name
@@ -491,45 +362,9 @@ if __name__ == '__main__':
         print(k,'=',v)
     print('************************')
 
-    if args.dataset == "DFEW":
-        args.number_class = 7
-        args.class_names = [
-        'happiness.',
-        'sadness.',
-        'neutral.',
-        'anger.',
-        'surprise.',
-        'disgust.',
-        'fear.']
-
-        all_fold = 5
-    elif args.dataset == "MAFW":
-        all_fold = 5
-        args.number_class = 7
-        args.class_names = [
-          "0", "1", '2', '3', '4','5', '6'
-        ]
-        # args.class_names = ["anger", 'fear', 'neutral', 'happiness','sadness', 'disgust', 'surprise']
-
-        # args.class_names = ["1", '2', '3', '4','5', '6', '7', '8', '9', '10', '11']
-        
-    elif args.dataset == "EMER":
-        all_fold = 5
-        args.number_class = 7
-        args.class_names = [
-          "0", "1", '2', '3', '4','5', '6'
-        ]
-
-    elif args.dataset == "CASME":
+    if args.dataset == "CASME":
         args.number_class = 3
         args.class_names = [
           "0", "1", '2'
         ]
-    uar, war = main(1, args)
-    UAR += float(uar)
-    WAR += float(war)
-        
-    print('********* Final Results *********')   
-    print("UAR: %0.2f" % (UAR))
-    print("WAR: %0.2f" % (WAR))
-    print('*********************************')
+    uar, war, uF1 = main(1, args)
