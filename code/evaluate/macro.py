@@ -57,19 +57,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-# 计算模型的大小
-def calculate_model_size(model):
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Number of trainable parameters: {num_params}")
-
-    # 估计模型在内存中的大小
-    total_size = 0
-    for p in model.parameters():
-        total_size += p.element_size() * p.nelement()
-    total_size += sum(p.element_size() * p.nelement() for p in model.buffers())
-    
-    print(f"Estimated model size in memory: {total_size / 1024 / 1024:.2f} MB")
-
 
 def main(set, args):
     
@@ -89,21 +76,10 @@ def main(set, args):
     model.load_state_dict(pre_trained_dict, strict=False)
     model = model.cuda()
     
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total trainable parameters: {total_params}")
-    
-    calculate_model_size(model)
-    
     with open(log_txt_path, 'a') as f:
         for k, v in vars(args).items():
             f.write(str(k) + '=' + str(v) + '\n')
     
-    # define loss function (criterion)
-    criterion = nn.CrossEntropyLoss().cuda()
-    
-    # define optimizer
-    optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs) 
     train_data = train_data_loader(list_file=train_annotation_file_path,
                                    num_segments=16,
                                    duration=1,
@@ -127,35 +103,10 @@ def main(set, args):
                                              shuffle=False,
                                              num_workers=args.workers,
                                              pin_memory=True)
-    ##############################
-    # train_loader.dataset.resample()
-    ##############################
 
-    for epoch in range(0, args.epochs):
-
-        inf = '********************' + str(epoch) + '********************'
-        start_time = time.time()
-        current_learning_rate_0 = optimizer.state_dict()['param_groups'][0]['lr']
-
-        with open(log_txt_path, 'a') as f:
-            f.write(inf + '\n')
-            print(inf)
-            f.write('Current learning rate: ' + str(current_learning_rate_0) + '\n')
-            print('Current learning rate: ', current_learning_rate_0)        
-            
-        val_acc, val_los,war,uar = validate(val_loader, model, criterion, args, log_txt_path)
-        print(val_acc, val_los,war,uar)
-
-        # print and save log
-        epoch_time = time.time() - start_time
-        recorder.update(epoch, train_los, train_acc, val_los, val_acc)
-        recorder.plot_curve(log_curve_path)
-
-        print('The best accuracy: {:.3f}'.format(best_acc.item()))
-        print('An epoch time: {:.2f}s'.format(epoch_time))
-        with open(log_txt_path, 'a') as f:
-            f.write('The best accuracy: ' + str(best_acc.item()) + '\n')
-            f.write('An epoch time: ' + str(epoch_time) + 's' + '\n')
+    
+    val_acc, val_los,war,uar = validate(val_loader, model, criterion, args, log_txt_path)
+    print(val_acc, val_los,war,uar)
 
     last_uar, last_war = computer_uar_war(val_loader, model, checkpoint_path, log_confusion_matrix_path, log_txt_path, data_set, args.class_names)
   
