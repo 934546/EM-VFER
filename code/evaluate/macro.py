@@ -80,46 +80,6 @@ def main(set, args):
     print('The training name: ' + time_str)
        
     model = GenerateModel(args=args)
-  
-    # only open learnable part
-    for name, param in model.named_parameters():
-        param.requires_grad = True #False
-
-    for name, param in model.named_parameters():
-        if "image_encoder" in name:
-            param.requires_grad = False 
-        if "audio_model" in name:
-            param.requires_grad = False
-        if "e_lstm" in name:
-            param.requires_grad = False
-        if "all_gate" in name:
-            param.requires_grad = True
-        if "our_classifier" in name:
-            param.requires_grad = True
-        if "positional_embedding" in name:
-            param.requires_grad = True
-        if "learnable_prompts" in name:
-            param.requires_grad = False
-        if "pos_embed" in name:
-            param.requires_grad = True
-        if "audio_proj" in name:
-            param.requires_grad = True
-        if "temporal" in name:
-            param.requires_grad = True
-        if "gate" in name:
-            param.requires_grad = True
-        if "context_att" in name:
-            param.requires_grad = True
-        if "learnable_q" in name:
-            param.requires_grad = True
-        if "audio_att" in name:
-            param.requires_grad = True
-        if "norm_xt" in name:
-            param.requires_grad = True
-        if "norm_xt_2" in name:
-            param.requires_grad = True
-        if "norm_qs" in name:
-            param.requires_grad = True
     
     path = '/data3/wl/MMA-DFER-mainlog/DFEW-2406200953DFEW_PRE_temp2-set2-log/checkpoint/best_model.pth'
     
@@ -223,14 +183,8 @@ def validate(val_loader, model, criterion, args, log_txt_path):
 
             loss = 0
             output = model(images, audio, name)
-            weights = [0.0001,0.0002,0.0004,0.0008,0.001,0.002,0.004,0.008,0.01,0.02,0.04,1.0]
-
-            for j in range(len(output)):
-                weighted_loss = weights[j] * criterion(output[j], target) if j < len(weights) else criterion(output[j], target)
-                loss += weighted_loss
             
             acc1, _ = accuracy(output[-1], target, topk=(1, 5))
-            losses.update(loss.item(), images.size(0))
             top1.update(acc1[0], images.size(0))
 
             # Collect predictions and targets for recall calculation
