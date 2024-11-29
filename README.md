@@ -39,7 +39,7 @@ You can download our trained models from [Baidu Drive](xxx).
 To evaluate on DFEW, run:
 
 ```
-python macro.py --DFEW
+python macro.py --dataset DFEW
 ```
 
 ### 4.2 Micro
@@ -47,5 +47,5 @@ python macro.py --DFEW
 To evaluate on CASMEⅢ, run:
 
 ```
-python micro.py --CASME3
+python micro.py --dataset CASME3
 ```
